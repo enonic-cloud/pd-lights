@@ -1,0 +1,23 @@
+project_name: pd-lights
+builds:
+  - env: [ CGO_ENABLED=0 ]
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - 6
+      - 7
+
+nfpms:
+  - maintainer: Guðmundur Björn Birkisson <gbi@enonic.com>
+    description: "{{ .ProjectName }}"
+    homepage: https://github.com/enonic-cloud/pd-lights
+    formats:
+      - deb
+      - rpm
+      - apk
