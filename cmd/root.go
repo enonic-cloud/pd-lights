@@ -64,6 +64,7 @@ func checkIncidents(client *pagerduty.Client) error {
 		Since: time.Now().Add(-time.Hour * 12).Format("2006-01-02"),
 	})
 	if err != nil {
+		log.Errorf("Failed calling PD api: %s", err)
 		return SetLights(ctx, On, Off, On)
 	}
 	for _, i := range res.Incidents {
