@@ -56,6 +56,15 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+func getWorseCase(a Light, b Light) Light {
+	if a == Red || b == Red {
+		return Red
+	} else if a == Yellow || b == Yellow {
+		return Yellow
+	}
+	return Green
+}
+
 func checkIncidents(client *pagerduty.Client) error {
 	ctx, cancel := context.WithTimeout(context.Background(), viper.GetDuration("timeout"))
 	defer cancel()
@@ -67,12 +76,20 @@ func checkIncidents(client *pagerduty.Client) error {
 		log.Errorf("Failed calling PD api: %s", err)
 		return SetLights(ctx, On, Off, On)
 	}
+
+	status := Green
+
+	// Roll over high urgency cases
 	for _, i := range res.Incidents {
+		// Skip high urgency incidents
+		if i.Urgency == "low" {
+			continue
+		}
 		switch i.Status {
 		case "triggered":
-			return SetLights(ctx, On, Off, Off)
+			status = getWorseCase(status, Red)
 		case "acknowledged":
-			return SetLights(ctx, Off, On, Off)
+			status = getWorseCase(status, Yellow)
 		case "resolved":
 			// Do nothing
 		default:
@@ -80,7 +97,37 @@ func checkIncidents(client *pagerduty.Client) error {
 			return SetLights(ctx, On, On, Off)
 		}
 	}
-	return SetLights(ctx, Off, Off, On)
+
+	// Roll over low urgency cases
+	for _, i := range res.Incidents {
+		// Skip low urgency incidents
+		if i.Urgency == "high" {
+			continue
+		}
+		switch i.Status {
+		case "triggered":
+			status = getWorseCase(status, Yellow)
+		case "acknowledged":
+			status = getWorseCase(status, Yellow)
+		case "resolved":
+			// Do nothing
+		default:
+			log.Warnf("Unknown status: %s", i.Status)
+			return SetLights(ctx, On, On, Off)
+		}
+	}
+
+	switch status {
+	case Red:
+		return SetLights(ctx, On, Off, Off)
+	case Yellow:
+		return SetLights(ctx, Off, On, Off)
+	case Green:
+		return SetLights(ctx, Off, Off, On)
+	}
+
+	// This should never happen
+	return SetLights(ctx, On, On, Off)
 }
 
 func Execute() {
