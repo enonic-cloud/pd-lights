@@ -28,9 +28,9 @@ var rootCmd = &cobra.Command{
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
-		log.Infof("Rolling throuh all the lights")
+		log.Infof("Rolling through all the lights")
 		if err := SetLights(ctx, On, On, On); err != nil {
-			log.Fatalf("Failed to turn off all lights")
+			log.Fatalf("Failed to turn on all lights")
 		}
 		if err := SetLights(ctx, On, Off, Off); err != nil {
 			log.Fatalf("Failed to turn on red light")
@@ -81,7 +81,7 @@ func checkIncidents(client *pagerduty.Client) error {
 
 	// Roll over high urgency cases
 	for _, i := range res.Incidents {
-		// Skip high urgency incidents
+		// Skip low urgency incidents
 		if i.Urgency == "low" {
 			continue
 		}
@@ -100,7 +100,7 @@ func checkIncidents(client *pagerduty.Client) error {
 
 	// Roll over low urgency cases
 	for _, i := range res.Incidents {
-		// Skip low urgency incidents
+		// Skip high urgency incidents
 		if i.Urgency == "high" {
 			continue
 		}
@@ -108,7 +108,7 @@ func checkIncidents(client *pagerduty.Client) error {
 		case "triggered":
 			status = getWorseCase(status, Yellow)
 		case "acknowledged":
-			status = getWorseCase(status, Yellow)
+			status = getWorseCase(status, Green)
 		case "resolved":
 			// Do nothing
 		default:
